@@ -5,6 +5,7 @@
 !cl_helper.h
 !embedSources.sh
 !Makefile
+!*.vcxproj
 !*.c
 !*.cpp
 !*.cl
