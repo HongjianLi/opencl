@@ -1,0 +1,10 @@
+*
+!.gitignore
+!LICENSE
+!README.md
+!cl_helper.h
+!embedSources.sh
+!Makefile
+!*.c
+!*.cpp
+!*.cl
