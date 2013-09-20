@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <CL/cl.h>
+//#include <CL/cl_ext.h>
 #include "../cl_helper.h"
 #include "vectorAdd.h"
 /*
@@ -123,14 +124,14 @@ int main(int argc, char* argv[])
 //			}
 //			else
 //			{
-			cl_mem d_s = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(cl_float) * gws, NULL, &error);
+			cl_mem d_s = clCreateBuffer(context, CL_MEM_READ_WRITE/* | CL_MEM_USE_PERSISTENT_MEM_AMD*/, sizeof(cl_float) * gws, NULL, &error);
 			checkOclErrors(error);
 			cl_float* q_s = (cl_float*)clEnqueueMapBuffer(command_queue, d_s, CL_TRUE, CL_MAP_WRITE/*_INVALIDATE_REGION*/, 0, sizeof(cl_float) * gws, 0, NULL, NULL, &error);
 			memset(q_s, 0, sizeof(cl_float) * gws);
 			checkOclErrors(clEnqueueUnmapMemObject(command_queue, d_s, q_s, 0, NULL, &input_events[0]));
 			checkOclErrors(error);
 //			}
-			cl_mem d_l = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(cl_float) * lws, NULL, &error);
+			cl_mem d_l = clCreateBuffer(context, CL_MEM_READ_ONLY/* | CL_MEM_USE_PERSISTENT_MEM_AMD*/,  sizeof(cl_float) * lws, NULL, &error);
 			checkOclErrors(error);
 			cl_float* q_l = (cl_float*)clEnqueueMapBuffer(command_queue, d_l, CL_TRUE, CL_MAP_WRITE/*_INVALIDATE_REGION*/, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
 			memcpy(q_l, p_l, sizeof(cl_float) * lws);
