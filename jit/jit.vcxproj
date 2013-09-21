@@ -88,6 +88,7 @@
       <AdditionalLibraryDirectories>$(AMDAPPSDKROOT)\lib\x86</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenCL.lib</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
@@ -100,6 +101,7 @@
       <AdditionalLibraryDirectories>$(AMDAPPSDKROOT)\lib\x86_64</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenCL.lib</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
