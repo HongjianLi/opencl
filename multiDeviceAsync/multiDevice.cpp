@@ -1,6 +1,8 @@
 #include <iostream>
 #include <iomanip>
 #include <ctime>
+#include <array>
+#include <numeric>
 #include <fstream>
 #include <boost/filesystem/operations.hpp>
 #include <CL/cl.h>
@@ -372,7 +374,7 @@ int main(int argc, char* argv[])
 		checkOclErrors(error);
 
 		// Add a callback to the compute stream.
-		checkOclErrors(clSetEventCallback(output_event, CL_COMPLETE, []CL_CALLBACK(cl_event event, cl_int command_exec_status, void* data)
+		checkOclErrors(clSetEventCallback(output_event, CL_COMPLETE, [](cl_event event, cl_int command_exec_status, void* data)
 		{
 			assert(command_exec_status == CL_COMPLETE);
 			const shared_ptr<callback_data<int>> cbd(reinterpret_cast<callback_data<int>*>(data));
