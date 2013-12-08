@@ -12,6 +12,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bandwidthTest", "bandwidthT
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mwc64x", "mwc64x\mwc64x.vcxproj", "{18C1C79D-266C-45A1-8163-761A8285DBC1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiDevice", "multiDeviceAsync\multiDevice.vcxproj", "{CCEEB36A-CC32-458D-9158-64619D21E1C5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -38,6 +40,10 @@ Global
 		{18C1C79D-266C-45A1-8163-761A8285DBC1}.Debug|x64.Build.0 = Debug|x64
 		{18C1C79D-266C-45A1-8163-761A8285DBC1}.Release|x64.ActiveCfg = Release|x64
 		{18C1C79D-266C-45A1-8163-761A8285DBC1}.Release|x64.Build.0 = Release|x64
+		{CCEEB36A-CC32-458D-9158-64619D21E1C5}.Debug|x64.ActiveCfg = Debug|x64
+		{CCEEB36A-CC32-458D-9158-64619D21E1C5}.Debug|x64.Build.0 = Debug|x64
+		{CCEEB36A-CC32-458D-9158-64619D21E1C5}.Release|x64.ActiveCfg = Release|x64
+		{CCEEB36A-CC32-458D-9158-64619D21E1C5}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
