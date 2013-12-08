@@ -14,23 +14,23 @@ class callback_data
 {
 public:
 	cl_ulong* acch;
-	ulong n;
+	cl_ulong n;
 	size_t gws;
 	cl_event e;
-	callback_data(cl_ulong* acch, ulong n, size_t gws, cl_event e) : acch(acch), n(n), gws(gws), e(e) {}
+	callback_data(cl_ulong* acch, cl_ulong n, size_t gws, cl_event e) : acch(acch), n(n), gws(gws), e(e) {}
 };
 
 int main(int argc, char* argv[])
 {
 	const size_t lws = 256;
 	const size_t gws = 32 * lws;
-	const ulong n = 1 << 30;
-	const ulong baseOffset = 0;
+	const cl_ulong n = 1 << 30;
+	const cl_ulong baseOffset = 0;
 
 	ifstream ifs("mwc64x.cl");
-	string image((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
-	const char* sources[] = { image.data() };
-	const size_t lengths = image.size();
+	string source((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
+	const char* sources[] = { source.data() };
+	const size_t source_length = source.length();
 
 	cl_int error;
 	char buffer[256];
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 
 			cl_context context = clCreateContext(NULL, 1, &device, NULL, NULL, &error);
 			checkOclErrors(error);
-			cl_program program = clCreateProgramWithSource(context, 1, sources, &lengths, &error);
+			cl_program program = clCreateProgramWithSource(context, 1, sources, &source_length, &error);
 			checkOclErrors(error);
 
 			checkOclErrors(clBuildProgram(program, 0, NULL, "-cl-fast-relaxed-math", NULL, NULL));
@@ -68,8 +68,8 @@ int main(int argc, char* argv[])
 
 			cl_mem accd = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_ulong) * gws, NULL, &error);
 			checkOclErrors(error);
-			checkOclErrors(clSetKernelArg(kernel, 0, sizeof(ulong), &n));
-			checkOclErrors(clSetKernelArg(kernel, 1, sizeof(ulong), &baseOffset));
+			checkOclErrors(clSetKernelArg(kernel, 0, sizeof(cl_ulong), &n));
+			checkOclErrors(clSetKernelArg(kernel, 1, sizeof(cl_ulong), &baseOffset));
 			checkOclErrors(clSetKernelArg(kernel, 2, sizeof(cl_mem), &accd));
 			cl_event kernel_event;
 			checkOclErrors(clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &gws, &lws, 0, NULL, &kernel_event));
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 			checkOclErrors(error);
 			cl_event e = clCreateUserEvent(context, &error);
 			checkOclErrors(error);
-			checkOclErrors(clSetEventCallback(output_map_event, CL_COMPLETE, []CL_CALLBACK(cl_event event, cl_int command_exec_status, void* data)
+			checkOclErrors(clSetEventCallback(output_map_event, CL_COMPLETE, [](cl_event event, cl_int command_exec_status, void* data)
 			{
 				assert(command_exec_status == CL_COMPLETE);
 				unique_ptr<callback_data> cbd(reinterpret_cast<callback_data*>(data));
