@@ -136,8 +136,9 @@ template <typename T>
 class callback_data
 {
 public:
-	callback_data(io_service_pool& io, const T dev, vector<float*>& cnfh, vector<float*>& ligh, vector<float>& prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), dev(dev), cnfh(cnfh), ligh(ligh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
+	callback_data(io_service_pool& io, const size_t lws, const T dev, vector<float*>& cnfh, vector<float*>& ligh, vector<float>& prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), lws(lws), dev(dev), cnfh(cnfh), ligh(ligh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
 	io_service_pool& io;
+	const size_t lws;
 	const T dev;
 	const vector<float*>& cnfh;
 	const vector<float*>& ligh;
@@ -380,6 +381,7 @@ int main(int argc, char* argv[])
 			const shared_ptr<callback_data<int>> cbd(reinterpret_cast<callback_data<int>*>(data));
 			cbd->io.post([=]()
 			{
+				const auto   lws = cbd->lws;
 				const auto   dev = cbd->dev;
 				const auto& cnfh = cbd->cnfh;
 				const auto& ligh = cbd->ligh;
@@ -418,7 +420,7 @@ int main(int argc, char* argv[])
 				// Signal the main thread to post another task.
 				idle.safe_push_back(dev);
 			});
-		}, new callback_data<int>(io, dev, cnfh, ligh, prmh, move(lig), safe_print, num_ligands, idle), 0));
+		}, new callback_data<int>(io, lws, dev, cnfh, ligh, prmh, move(lig), safe_print, num_ligands, idle), 0));
 	}
 
 	// Synchronize queues.
