@@ -10,9 +10,12 @@
 #include "io_service_pool.hpp"
 using namespace boost::filesystem;
 
-void spin(const clock_t num_clocks)
+void spin(const size_t n)
 {
-	for (const clock_t threshold = clock() + num_clocks; clock() < threshold;);
+	for (size_t i = 0; i < n; ++i)
+	{
+		rand();
+	}
 }
 
 class scoring_function
