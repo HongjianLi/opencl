@@ -136,11 +136,12 @@ template <typename T>
 class callback_data
 {
 public:
-	callback_data(io_service_pool& io, const size_t lws, const T dev, cl_command_queue queue, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), lws(lws), dev(dev), queue(queue), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
+	callback_data(io_service_pool& io, const size_t lws, const T dev, cl_command_queue queue, cl_mem ligd, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), lws(lws), dev(dev), queue(queue), ligd(ligd), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
 	io_service_pool& io;
 	const size_t lws;
 	const T dev;
 	cl_command_queue queue;
+	cl_mem ligd;
 	cl_mem slnd;
 	cl_float* const cnfh;
 	const cl_float* const prmh;
@@ -385,6 +386,7 @@ int main(int argc, char* argv[])
 				const auto   lws = cbd->lws;
 				const auto   dev = cbd->dev;
 				const auto queue = cbd->queue;
+				const auto  ligd = cbd->ligd;
 				const auto  slnd = cbd->slnd;
 				const auto  cnfh = cbd->cnfh;
 				const auto  prmh = cbd->prmh;
@@ -393,11 +395,10 @@ int main(int argc, char* argv[])
 				auto& num_ligands = cbd->num_ligands;
 				auto& idle = cbd->idle;
 
-				// Recover ligh from lig.
-				vector<cl_float> ligh(lws);
-				lig.encode(ligh.data(), lws);
-
 				// Validate results.
+				cl_int error;
+				cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queue, ligd, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
+				checkOclErrors(error);
 				for (int i = 0; i < lws; ++i)
 				{
 					const float actual = cnfh[i];
@@ -408,6 +409,7 @@ int main(int argc, char* argv[])
 						break;
 					}
 				}
+				checkOclErrors(clEnqueueUnmapMemObject(queue, ligd, ligh, 0, NULL, NULL));
 
 				// Write conformations.
 				lig.write(cnfh);
@@ -429,7 +431,7 @@ int main(int argc, char* argv[])
 				// Signal the main thread to post another task.
 				idle.safe_push_back(dev);
 			});
-		}, new callback_data<int>(io, lws, dev, queues[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
+		}, new callback_data<int>(io, lws, dev, queues[dev], ligd[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
 	}
 
 	// Synchronize queues.
@@ -446,7 +448,7 @@ int main(int argc, char* argv[])
 	// Release resources.
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
-//		checkOclErrors(clReleaseMemObject(cnfh[dev]));
+		checkOclErrors(clReleaseMemObject(prmd[dev]));
 		checkOclErrors(clReleaseMemObject(slnd[dev]));
 		checkOclErrors(clReleaseMemObject(ligd[dev]));
 		checkOclErrors(clReleaseCommandQueue(queues[dev]));
