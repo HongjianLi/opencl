@@ -440,7 +440,7 @@ int main(int argc, char* argv[])
 	// Synchronize queues.
 	for (auto& queue : queues)
 	{
-		checkOclErrors(clFlush(queue));
+		checkOclErrors(clFinish(queue));
 //		checkOclErrors(clWaitForEvents(1, &callback_event));
 	}
 
