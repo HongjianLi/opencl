@@ -1,7 +1,7 @@
 CC=clang++ -std=c++11 -O2
 
 multiDevice: multiDevice.o io_service_pool.o
-	$(CC) -o $@ $^ -lOpenCL -L${BOOST_ROOT}/lib -lboost_system -lboost_filesystem
+	$(CC) -o $@ $^ -pthread -lOpenCL -L${BOOST_ROOT}/lib -lboost_system -lboost_filesystem
 
 multiDevice.o: multiDevice.cpp
 	$(CC) -o $@ $< -c -I${BOOST_ROOT}
