@@ -1,4 +1,4 @@
-CC=clang++ -std=c++11 -O2
+CC=clang++ -std=c++11 -O2 -fsanitize=thread
 
 multiDevice: multiDevice.o io_service_pool.o
 	$(CC) -o $@ $^ -pthread -lOpenCL -L${BOOST_ROOT}/lib -lboost_system -lboost_filesystem
