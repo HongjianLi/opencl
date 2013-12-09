@@ -136,13 +136,14 @@ template <typename T>
 class callback_data
 {
 public:
-	callback_data(io_service_pool& io, const size_t lws, const T dev, vector<float*>& cnfh, vector<float*>& ligh, vector<float>& prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), lws(lws), dev(dev), cnfh(cnfh), ligh(ligh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
+	callback_data(io_service_pool& io, const size_t lws, const T dev, cl_command_queue queue, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), lws(lws), dev(dev), queue(queue), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
 	io_service_pool& io;
 	const size_t lws;
 	const T dev;
-	const vector<float*>& cnfh;
-	const vector<float*>& ligh;
-	const vector<float> & prmh;
+	cl_command_queue queue;
+	cl_mem slnd;
+	cl_float* const cnfh;
+	const cl_float* const prmh;
 	ligand lig;
 	safe_function& safe_print;
 	size_t& num_ligands;
@@ -182,7 +183,7 @@ int main(int argc, char* argv[])
 	checkOclErrors(clGetPlatformIDs(0, NULL, &num_platforms));
 	vector<cl_platform_id> platforms(num_platforms);
 	checkOclErrors(clGetPlatformIDs(num_platforms, platforms.data(), NULL));
-	const auto platform = platforms[1];
+	const auto platform = platforms[num_platforms == 3 ? 1 : 0];
 	checkOclErrors(clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(buffer), buffer, NULL));
 	cout << "CL_PLATFORM_NAME: " << buffer << endl;
 
@@ -219,10 +220,11 @@ int main(int argc, char* argv[])
 	vector<cl_program> programs(num_devices);
 	vector<cl_kernel> kernels(num_devices);
 	vector<vector<size_t>> xst(num_devices);
-	vector<cl_mem> ligh(num_devices);
+	vector<cl_mem> prmd(num_devices);
+//	vector<cl_mem> ligh(num_devices);
 	vector<cl_mem> ligd(num_devices);
 	vector<cl_mem> slnd(num_devices);
-	vector<cl_mem> cnfh(num_devices);
+//	vector<cl_mem> cnfh(num_devices);
 	cl_int error;
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
@@ -257,7 +259,9 @@ int main(int argc, char* argv[])
 		// Reserve space for xst.
 		xst[dev].reserve(sf.n);
 
-		// Allocate ligh, ligd, slnd and cnfh.
+		// Allocate prmd, ligh, ligd, slnd and cnfh.
+		prmd[dev] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * lws, prmh.data(), &error);
+		checkOclErrors(error);
 //		ligh[dev] = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_float) * lws, NULL, &error);
 //		checkOclErrors(error);
 		ligd[dev] = clCreateBuffer(context, CL_MEM_READ_ONLY,      sizeof(cl_float) * lws, NULL, &error);
@@ -331,21 +335,18 @@ int main(int argc, char* argv[])
 			const size_t map_bytes = sizeof(float) * rec.num_probes_product;
 			for (const auto t : xs)
 			{
-/*				CUdeviceptr mapd;
-				checkCudaErrors(cuMemAlloc(&mapd, map_bytes));
-				checkCudaErrors(cuMemcpyHtoD(mapd, rec.maps[t].data(), map_bytes));*/
+//				CUdeviceptr mapd;
+//				checkCudaErrors(cuMemAlloc(&mapd, map_bytes));
+//				checkCudaErrors(cuMemcpyHtoD(mapd, rec.maps[t].data(), map_bytes));
 			}
 		}
 
 		// Encode the current ligand.
 		cl_event input_events[2];
 		cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queues[dev], ligd[dev], CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
+		checkOclErrors(error);
 		lig.encode(ligh, lws);
 		checkOclErrors(clEnqueueUnmapMemObject(queues[dev], ligd[dev], ligh, 0, NULL, &input_events[0]));
-		checkOclErrors(error);
-
-		// Compute the number of shared memory bytes.
-		const size_t lig_bytes = sizeof(float) * lws;
 
 		// Clear the solution buffer.
 		if (cl12[dev])
@@ -365,16 +366,16 @@ int main(int argc, char* argv[])
 		checkOclErrors(clSetKernelArg(kernels[dev], 0, sizeof(cl_mem), &slnd[dev]));
 		checkOclErrors(clSetKernelArg(kernels[dev], 1, sizeof(cl_mem), &ligd[dev]));
 		checkOclErrors(clSetKernelArg(kernels[dev], 2, sizeof(cl_float) * lws, NULL));
-//		checkOclErrors(clSetKernelArg(kernels[dev], 3, sizeof(cl_float) * lws, prmh));
+		checkOclErrors(clSetKernelArg(kernels[dev], 3, sizeof(cl_mem), &prmd[dev]));
 		cl_event kernel_event;
 		checkOclErrors(clEnqueueNDRangeKernel(queues[dev], kernels[dev], 1, NULL, &gws, &lws, 2, input_events, &kernel_event));
 
 		// Copy conformations from device memory to host memory.
 		cl_event output_event;
-		cl_float* cnfh = (cl_float*)clEnqueueMapBuffer(queues[dev], slnd[dev], CL_FALSE, CL_MAP_READ, 0, sizeof(cl_float) * lws, 1, &output_event, &output_event, &error);
+		cl_float* cnfh = (cl_float*)clEnqueueMapBuffer(queues[dev], slnd[dev], CL_FALSE, CL_MAP_READ, 0, sizeof(cl_float) * lws, 1, &kernel_event, &output_event, &error);
 		checkOclErrors(error);
 
-		// Add a callback to the compute stream.
+		// Add a callback to the output event.
 		checkOclErrors(clSetEventCallback(output_event, CL_COMPLETE, [](cl_event event, cl_int command_exec_status, void* data)
 		{
 			assert(command_exec_status == CL_COMPLETE);
@@ -383,19 +384,24 @@ int main(int argc, char* argv[])
 			{
 				const auto   lws = cbd->lws;
 				const auto   dev = cbd->dev;
-				const auto& cnfh = cbd->cnfh;
-				const auto& ligh = cbd->ligh;
-				const auto& prmh = cbd->prmh;
+				const auto queue = cbd->queue;
+				const auto  slnd = cbd->slnd;
+				const auto  cnfh = cbd->cnfh;
+				const auto  prmh = cbd->prmh;
 				auto& lig = cbd->lig;
 				auto& safe_print = cbd->safe_print;
 				auto& num_ligands = cbd->num_ligands;
 				auto& idle = cbd->idle;
 
+				// Recover ligh from lig.
+				vector<cl_float> ligh(lws);
+				lig.encode(ligh.data(), lws);
+
 				// Validate results.
 				for (int i = 0; i < lws; ++i)
 				{
-					const float actual = cnfh[dev][i];
-					const float expected = ligh[dev][i] * 2.0f + 1.0f + prmh[i % 16];
+					const float actual = cnfh[i];
+					const float expected = ligh[i] * 2.0f + 1.0f + prmh[i % 16];
 					if (fabs(actual - expected) > 1e-7)
 					{
 						printf("cnfh[%d] = %f, expected = %f\n", i, actual, expected);
@@ -404,7 +410,7 @@ int main(int argc, char* argv[])
 				}
 
 				// Write conformations.
-				lig.write(cnfh[dev]);
+				lig.write(cnfh);
 
 				// Output and save ligand stem and predicted affinities.
 				safe_print([&]()
@@ -412,15 +418,18 @@ int main(int argc, char* argv[])
 					cout << setw(2) << ++num_ligands << setw(20) << lig.filename.string() << setw(2) << dev << ' ';
 					for (int i = 0; i < 9; ++i)
 					{
-						cout << setw(6) << cnfh[dev][i];
+						cout << setw(6) << cnfh[i];
 					}
 					cout << endl;
 				});
 
+				// Unmap cnfh.
+				checkOclErrors(clEnqueueUnmapMemObject(queue, slnd, cnfh, 0, NULL, NULL));
+
 				// Signal the main thread to post another task.
 				idle.safe_push_back(dev);
 			});
-		}, new callback_data<int>(io, lws, dev, cnfh, ligh, prmh, move(lig), safe_print, num_ligands, idle), 0));
+		}, new callback_data<int>(io, lws, dev, queues[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
 	}
 
 	// Synchronize queues.
