@@ -216,7 +216,7 @@ int main(int argc, char* argv[])
 
 	cout << "Compiling modules for " << num_devices << " devices" << endl;
 	std::ifstream ifs("multiDevice.cl");
-	string source(istreambuf_iterator<char>(ifs), istreambuf_iterator<char>());
+	string source((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
 	const char* sources[] = { source.data() };
 	const size_t source_length = source.length();
 	vector<cl_context> contexts(num_devices);
