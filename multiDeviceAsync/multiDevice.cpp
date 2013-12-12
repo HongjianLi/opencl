@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
 	{
 		const auto device = devices[dev];
 		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL));
-		printf("CL_DEVICE_NAME: %s\n", buffer);
+		cout << "CL_DEVICE_NAME: " << buffer << endl;
 		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_OPENCL_C_VERSION, sizeof(buffer), buffer, NULL));
 		cl12[dev] = !strcmp(buffer, "OpenCL C 1.2");
 		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(host_unified_memory[dev]), &host_unified_memory[dev], NULL));
@@ -356,7 +356,7 @@ int main(int argc, char* argv[])
 		if (cl12[dev])
 		{
 			const cl_float pattern = 0.0f;
-			checkOclErrors(clEnqueueFillBuffer(queues[dev], slnd[dev], &pattern, sizeof(pattern), 0, sizeof(cl_float) * gws, 0, NULL, &input_events[0]));
+			checkOclErrors(clEnqueueFillBuffer(queues[dev], slnd[dev], &pattern, sizeof(pattern), 0, sizeof(cl_float) * gws, 0, NULL, &input_events[1]));
 		}
 		else
 		{
@@ -441,7 +441,6 @@ int main(int argc, char* argv[])
 	for (auto& queue : queues)
 	{
 		checkOclErrors(clFinish(queue));
-//		checkOclErrors(clWaitForEvents(1, &callback_event));
 	}
 
 	// Wait until the io service pool has finished all its tasks.
