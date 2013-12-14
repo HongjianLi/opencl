@@ -277,8 +277,10 @@ int main(int argc, char* argv[])
 //		cnfh[dev] = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_float) * lws, NULL, &error);
 //		checkOclErrors(error);
 
+		// Create callback events.
 		cbex[dev] = clCreateUserEvent(context, &error);
 		checkOclErrors(error);
+		clSetUserEventStatus(cbex[dev], CL_COMPLETE);
 	}
 	source.clear();
 
