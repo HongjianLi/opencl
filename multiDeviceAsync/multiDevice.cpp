@@ -215,7 +215,7 @@ int main(int argc, char* argv[])
 		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(host_unified_memory[dev]), &host_unified_memory[dev], NULL));
 	}
 
-	cout << "Compiling modules for " << num_devices << " devices" << endl;
+	cout << "Create contexts and compiling modules for " << num_devices << " devices" << endl;
 	std::ifstream ifs("multiDevice.cl");
 	string source((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
 	const char* sources[] = { source.data() };
