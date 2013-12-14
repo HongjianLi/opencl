@@ -230,7 +230,6 @@ int main(int argc, char* argv[])
 	vector<cl_mem> ligd(num_devices);
 	vector<cl_mem> slnd(num_devices);
 //	vector<cl_mem> cnfh(num_devices);
-	vector<cl_event> cbex(num_devices);
 	cl_int error;
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
@@ -276,11 +275,6 @@ int main(int argc, char* argv[])
 		checkOclErrors(error);
 //		cnfh[dev] = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_float) * lws, NULL, &error);
 //		checkOclErrors(error);
-
-		// Create callback events.
-		cbex[dev] = clCreateUserEvent(context, &error);
-		checkOclErrors(error);
-		clSetUserEventStatus(cbex[dev], CL_COMPLETE);
 	}
 	source.clear();
 
@@ -290,6 +284,7 @@ int main(int argc, char* argv[])
 
 	// Perform docking for each ligand in the input folder.
 	size_t num_ligands = 0;
+	vector<cl_event> cbex(num_devices);
 	cout.setf(ios::fixed, ios::floatfield);
 	cout << "ID              Ligand D  pKd 1     2     3     4     5     6     7     8     9" << endl << setprecision(2);
 	for (directory_iterator dir_iter("."), const_dir_iter; dir_iter != const_dir_iter; ++dir_iter)
@@ -386,8 +381,10 @@ int main(int argc, char* argv[])
 		cl_float* cnfh = (cl_float*)clEnqueueMapBuffer(queues[dev], slnd[dev], CL_FALSE, CL_MAP_READ, 0, sizeof(cl_float) * lws, 1, &kernel_event, &output_event, &error);
 		checkOclErrors(error);
 
-		// Reset the callback event.
-		clSetUserEventStatus(cbex[dev], CL_SUBMITTED);
+		// Create callback events.
+		if (cbex[dev]) checkOclErrors(clReleaseEvent(cbex[dev]));
+		cbex[dev] = clCreateUserEvent(contexts[dev], &error);
+		checkOclErrors(error);
 
 		// Add a callback to the output event.
 		checkOclErrors(clSetEventCallback(output_event, CL_COMPLETE, [](cl_event event, cl_int command_exec_status, void* data)
@@ -444,18 +441,16 @@ int main(int argc, char* argv[])
 				// Signal the main thread to post another task.
 				idle.safe_push_back(dev);
 			});
-			clSetUserEventStatus(cbd->cbex, CL_COMPLETE);
+			checkOclErrors(clSetUserEventStatus(cbd->cbex, CL_COMPLETE));
 		}, new callback_data<int>(io, cbex[dev], lws, dev, queues[dev], ligd[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
 	}
 
-	// Synchronize queues.
-	for (auto& queue : queues)
+	// Synchronize queues and callback events.
+	for (int dev = 0; dev < num_devices; ++dev)
 	{
-		checkOclErrors(clFinish(queue));
+		checkOclErrors(clFinish(queues[dev]));
+		checkOclErrors(clWaitForEvents(1, &cbex[dev]));
 	}
-
-	// Wait for callback events to complete.
-	checkOclErrors(clWaitForEvents(num_devices, cbex.data()));
 
 	// Wait until the io service pool has finished all its tasks.
 	io.wait();
