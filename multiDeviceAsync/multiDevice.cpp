@@ -400,7 +400,7 @@ int main(int argc, char* argv[])
 
 				// Validate results.
 				cl_int error;
-				cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queue, ligd, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
+				cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queue, ligd, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
 				checkOclErrors(error);
 				for (int i = 0; i < lws; ++i)
 				{
