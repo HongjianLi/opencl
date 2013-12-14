@@ -20,3 +20,13 @@ vectorAdd
 ---------
 
 This sample uses async API and constant and shared memory to add two vectors of float.
+
+mwc64x
+------
+
+This sample features a random number generator based on multiply-with-carry.
+
+multiDeviceAsync
+----------------
+
+This sample distributes multiple tasks to multiple devices dynamically, and uses asynchronous callbacks for postprocessing.
