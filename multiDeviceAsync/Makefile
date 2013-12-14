@@ -4,7 +4,7 @@ multiDevice: multiDevice.o io_service_pool.o
 	$(CC) -o $@ $^ -pthread -lOpenCL -L${BOOST_ROOT}/lib -lboost_system -lboost_filesystem
 
 multiDevice.o: multiDevice.cpp
-	$(CC) -o $@ $< -c -I${BOOST_ROOT}
+	$(CC) -o $@ $< -c -I${BOOST_ROOT} -I${ICD_ROOT}/inc
 
 io_service_pool.o: io_service_pool.cpp
 	$(CC) -o $@ $< -c -I${BOOST_ROOT}
