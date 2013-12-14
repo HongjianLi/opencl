@@ -41,7 +41,7 @@ ulong AddMod64(ulong a, ulong b, ulong M)
 // Pre: a < M, b < M
 // Post: r = (a * b) mod M
 ulong MulMod64(ulong a, ulong b, ulong M)
-{	
+{
 	ulong r = 0;
 	while (a)
 	{
