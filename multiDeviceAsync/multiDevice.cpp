@@ -455,7 +455,7 @@ int main(int argc, char* argv[])
 	}
 
 	// Wait for callback events to complete.
-	clWaitForEvents(num_devices, cbex.data());
+	checkOclErrors(clWaitForEvents(num_devices, cbex.data()));
 
 	// Wait until the io service pool has finished all its tasks.
 	io.wait();
