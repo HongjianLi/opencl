@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
 	checkOclErrors(clGetPlatformIDs(0, NULL, &num_platforms));
 	vector<cl_platform_id> platforms(num_platforms);
 	checkOclErrors(clGetPlatformIDs(num_platforms, platforms.data(), NULL));
-	const auto platform = platforms[num_platforms == 3 ? 1 : 0];
+	const auto platform = platforms[num_platforms > 1 ? 1 : 0];
 	checkOclErrors(clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(buffer), buffer, NULL));
 	cout << "CL_PLATFORM_NAME: " << buffer << endl;
 
