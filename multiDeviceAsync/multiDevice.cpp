@@ -139,8 +139,9 @@ template <typename T>
 class callback_data
 {
 public:
-	callback_data(io_service_pool& io, const size_t lws, const T dev, cl_command_queue queue, cl_mem ligd, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), lws(lws), dev(dev), queue(queue), ligd(ligd), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
+	callback_data(io_service_pool& io, cl_event cbex, const size_t lws, const T dev, cl_command_queue queue, cl_mem ligd, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), cbex(cbex), lws(lws), dev(dev), queue(queue), ligd(ligd), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
 	io_service_pool& io;
+	cl_event cbex;
 	const size_t lws;
 	const T dev;
 	cl_command_queue queue;
@@ -229,6 +230,7 @@ int main(int argc, char* argv[])
 	vector<cl_mem> ligd(num_devices);
 	vector<cl_mem> slnd(num_devices);
 //	vector<cl_mem> cnfh(num_devices);
+	vector<cl_event> cbex(num_devices);
 	cl_int error;
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
@@ -274,6 +276,9 @@ int main(int argc, char* argv[])
 		checkOclErrors(error);
 //		cnfh[dev] = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_float) * lws, NULL, &error);
 //		checkOclErrors(error);
+
+		cbex[dev] = clCreateUserEvent(context, &error);
+		checkOclErrors(error);
 	}
 	source.clear();
 
@@ -379,6 +384,9 @@ int main(int argc, char* argv[])
 		cl_float* cnfh = (cl_float*)clEnqueueMapBuffer(queues[dev], slnd[dev], CL_FALSE, CL_MAP_READ, 0, sizeof(cl_float) * lws, 1, &kernel_event, &output_event, &error);
 		checkOclErrors(error);
 
+		// Reset the callback event.
+		clSetUserEventStatus(cbex[dev], CL_SUBMITTED);
+
 		// Add a callback to the output event.
 		checkOclErrors(clSetEventCallback(output_event, CL_COMPLETE, [](cl_event event, cl_int command_exec_status, void* data)
 		{
@@ -434,7 +442,8 @@ int main(int argc, char* argv[])
 				// Signal the main thread to post another task.
 				idle.safe_push_back(dev);
 			});
-		}, new callback_data<int>(io, lws, dev, queues[dev], ligd[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
+			clSetUserEventStatus(cbd->cbex, CL_COMPLETE);
+		}, new callback_data<int>(io, cbex[dev], lws, dev, queues[dev], ligd[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
 	}
 
 	// Synchronize queues.
@@ -443,6 +452,9 @@ int main(int argc, char* argv[])
 		checkOclErrors(clFinish(queue));
 	}
 
+	// Wait for callback events to complete.
+	clWaitForEvents(num_devices, cbex.data());
+
 	// Wait until the io service pool has finished all its tasks.
 	io.wait();
 	assert(idle.size() == num_devices);
@@ -450,6 +462,7 @@ int main(int argc, char* argv[])
 	// Release resources.
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
+		checkOclErrors(clReleaseEvent(cbex[dev]));
 		checkOclErrors(clReleaseMemObject(prmd[dev]));
 		checkOclErrors(clReleaseMemObject(slnd[dev]));
 		checkOclErrors(clReleaseMemObject(ligd[dev]));
