@@ -449,7 +449,7 @@ int main(int argc, char* argv[])
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
 		checkOclErrors(clFinish(queues[dev]));
-		checkOclErrors(clWaitForEvents(1, &cbex[dev]));
+		if (cbex[dev]) checkOclErrors(clWaitForEvents(1, &cbex[dev]));
 	}
 
 	// Wait until the io service pool has finished all its tasks.
@@ -459,7 +459,7 @@ int main(int argc, char* argv[])
 	// Release resources.
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
-		checkOclErrors(clReleaseEvent(cbex[dev]));
+		if (cbex[dev]) checkOclErrors(clReleaseEvent(cbex[dev]));
 		checkOclErrors(clReleaseMemObject(prmd[dev]));
 		checkOclErrors(clReleaseMemObject(slnd[dev]));
 		checkOclErrors(clReleaseMemObject(ligd[dev]));
