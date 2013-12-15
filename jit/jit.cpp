@@ -72,6 +72,7 @@ int main(int argc, char* argv[])
 			checkOclErrors(clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL));
 			printf("%s\n", build_log);
 			free(build_log);
+			if (build_status != CL_BUILD_SUCCESS) continue;
 
 			cl_uint num_kernels;
 			checkOclErrors(clCreateKernelsInProgram(program, 0, NULL, &num_kernels));
