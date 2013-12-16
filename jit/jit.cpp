@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
 				cl_uint num_args;
 				checkOclErrors(clGetKernelInfo(kernel, CL_KERNEL_NUM_ARGS, sizeof(num_args), &num_args, NULL));
 				printf("CL_KERNEL_NUM_ARGS: %d\n", num_args);
-				for (int a = 0; a < num_args; ++a)
+/*				for (int a = 0; a < num_args; ++a)
 				{
 					printf("%2d", a);
 					static const char* const address_qualifiers[] = { "global", "local", "constant", "private" };
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 					if (type_qualifier & CL_KERNEL_ARG_TYPE_VOLATILE) printf(" volatile");
 					checkOclErrors(clGetKernelArgInfo(kernel, a, CL_KERNEL_ARG_NAME, sizeof(buffer), buffer, NULL));
 					printf(" %s\n", buffer);
-				}
+				}*/
 
 				cl_ulong local_mem_size;
 				checkOclErrors(clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(cl_ulong), &local_mem_size, NULL));
