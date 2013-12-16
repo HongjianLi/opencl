@@ -81,8 +81,32 @@ int main(int argc, char* argv[])
 			for (int i = 0; i < num_kernels; ++i)
 			{
 				cl_kernel kernel = kernels[i];
-				checkOclErrors(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, sizeof(buffer) , buffer, NULL));
+				checkOclErrors(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, sizeof(buffer), buffer, NULL));
 				printf("CL_KERNEL_FUNCTION_NAME: %s\n", buffer);
+				cl_uint num_args;
+				checkOclErrors(clGetKernelInfo(kernel, CL_KERNEL_NUM_ARGS, sizeof(num_args), &num_args, NULL));
+				printf("CL_KERNEL_NUM_ARGS: %d\n", num_args);
+				for (int a = 0; a < num_args; ++a)
+				{
+					printf("%2d", a);
+					static const char* const address_qualifiers[] = { "global", "local", "constant", "private" };
+					cl_kernel_arg_address_qualifier address_qualifier;
+					checkOclErrors(clGetKernelArgInfo(kernel, a, CL_KERNEL_ARG_ADDRESS_QUALIFIER, sizeof(address_qualifier), &address_qualifier, NULL));
+					printf(" %s", address_qualifiers[address_qualifier - CL_KERNEL_ARG_ADDRESS_GLOBAL]);
+//					static const char* const access_qualifiers[] = { "READ_ONLY", "WRITE_ONLY", "READ_WRITE", "NONE" };
+//					cl_kernel_arg_access_qualifier access_qualifier;
+//					checkOclErrors(clGetKernelArgInfo(kernel, a, CL_KERNEL_ARG_ACCESS_QUALIFIER, sizeof(access_qualifier), &access_qualifier, NULL));
+//					printf("CL_KERNEL_ARG_ACCESS_QUALIFIER: %s\n", access_qualifiers[access_qualifier - CL_KERNEL_ARG_ACCESS_READ_ONLY]);
+					checkOclErrors(clGetKernelArgInfo(kernel, a, CL_KERNEL_ARG_TYPE_NAME, sizeof(buffer), buffer, NULL));
+					printf(" %s", buffer);
+					cl_kernel_arg_type_qualifier type_qualifier;
+					checkOclErrors(clGetKernelArgInfo(kernel, a, CL_KERNEL_ARG_TYPE_QUALIFIER, sizeof(type_qualifier), &type_qualifier, NULL));
+					if (type_qualifier & CL_KERNEL_ARG_TYPE_CONST) printf(" const");
+					if (type_qualifier & CL_KERNEL_ARG_TYPE_RESTRICT) printf(" restrict");
+					if (type_qualifier & CL_KERNEL_ARG_TYPE_VOLATILE) printf(" volatile");
+					checkOclErrors(clGetKernelArgInfo(kernel, a, CL_KERNEL_ARG_NAME, sizeof(buffer), buffer, NULL));
+					printf(" %s\n", buffer);
+				}
 
 				cl_ulong local_mem_size;
 				checkOclErrors(clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(cl_ulong), &local_mem_size, NULL));
