@@ -226,6 +226,7 @@ int main(int argc, char* argv[])
 	vector<cl_kernel> kernels(num_devices);
 	vector<vector<size_t>> xst(num_devices);
 	vector<cl_mem> prmd(num_devices);
+	vector<vector<cl_mem>> mpsd(num_devices, vector<cl_mem>(sf.n));
 //	vector<cl_mem> ligh(num_devices);
 	vector<cl_mem> ligd(num_devices);
 	vector<cl_mem> slnd(num_devices);
@@ -341,9 +342,9 @@ int main(int argc, char* argv[])
 			const size_t map_bytes = sizeof(float) * rec.num_probes_product;
 			for (const auto t : xs)
 			{
-//				CUdeviceptr mapd;
-//				checkCudaErrors(cuMemAlloc(&mapd, map_bytes));
-//				checkCudaErrors(cuMemcpyHtoD(mapd, rec.maps[t].data(), map_bytes));
+				mpsd[dev][t] = clCreateBuffer(contexts[dev], CL_MEM_READ_ONLY, map_bytes, NULL, &error);
+				checkOclErrors(error);
+				checkOclErrors(clEnqueueWriteBuffer(queues[dev], mpsd[dev][t], CL_TRUE, 0, map_bytes, rec.maps[t].data(), 0, NULL, NULL));
 			}
 		}
 
