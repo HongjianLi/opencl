@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
 		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL));
 		cout << "CL_DEVICE_NAME: " << buffer << endl;
 		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_OPENCL_C_VERSION, sizeof(buffer), buffer, NULL));
-		cl12[dev] = !strcmp(buffer, "OpenCL C 1.2");
+		cl12[dev] = buffer[9] > '1' || buffer[11] >= '2';
 		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(host_unified_memory[dev]), &host_unified_memory[dev], NULL));
 	}
 
@@ -350,7 +350,7 @@ int main(int argc, char* argv[])
 
 		// Encode the current ligand.
 		cl_event input_events[2];
-		cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queues[dev], ligd[dev], CL_TRUE, CL_MAP_WRITE << cl12[dev], 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
+		cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queues[dev], ligd[dev], CL_TRUE, cl12[dev] ? CL_MAP_WRITE_INVALIDATE_REGION : CL_MAP_WRITE, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
 		checkOclErrors(error);
 		lig.encode(ligh, lws);
 		checkOclErrors(clEnqueueUnmapMemObject(queues[dev], ligd[dev], ligh, 0, NULL, &input_events[0]));
