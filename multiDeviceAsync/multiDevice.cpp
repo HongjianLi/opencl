@@ -350,7 +350,7 @@ int main(int argc, char* argv[])
 
 		// Encode the current ligand.
 		cl_event input_events[2];
-		cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queues[dev], ligd[dev], CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
+		cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queues[dev], ligd[dev], CL_TRUE, CL_MAP_WRITE << cl12[dev], 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
 		checkOclErrors(error);
 		lig.encode(ligh, lws);
 		checkOclErrors(clEnqueueUnmapMemObject(queues[dev], ligd[dev], ligh, 0, NULL, &input_events[0]));
@@ -363,7 +363,7 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			cl_float* slnh = (cl_float*)clEnqueueMapBuffer(queues[dev], slnd[dev], CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, sizeof(cl_float) * gws, 0, NULL, NULL, &error);
+			cl_float* slnh = (cl_float*)clEnqueueMapBuffer(queues[dev], slnd[dev], CL_TRUE, CL_MAP_WRITE, 0, sizeof(cl_float) * gws, 0, NULL, NULL, &error);
 			checkOclErrors(error);
 			memset(slnh, 0, sizeof(cl_float) * gws);
 			checkOclErrors(clEnqueueUnmapMemObject(queues[dev], slnd[dev], slnh, 0, NULL, &input_events[1]));
