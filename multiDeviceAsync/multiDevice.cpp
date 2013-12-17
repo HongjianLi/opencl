@@ -36,13 +36,10 @@ class receptor
 public:
 	array<int, 3> num_probes;
 	size_t num_probes_product;
+	size_t map_bytes;
 	vector<vector<float>> maps;
-	explicit receptor(const path& p) : num_probes({100, 80, 70}), num_probes_product(1), maps(scoring_function::n)
+	explicit receptor(const path& p) : num_probes({ 100, 80, 70 }), num_probes_product(num_probes[0] * num_probes[1] * num_probes[2]), map_bytes(sizeof(float) * num_probes_product), maps(scoring_function::n)
 	{
-		for (size_t i = 0; i < 3; ++i)
-		{
-			num_probes_product *= num_probes[i];
-		}
 	}
 	void populate(const scoring_function& sf, const vector<size_t>& xs, const size_t z)
 	{
@@ -236,13 +233,12 @@ int main(int argc, char* argv[])
 	vector<cl_command_queue> queues(num_devices);
 	vector<cl_program> programs(num_devices);
 	vector<cl_kernel> kernels(num_devices);
-	vector<vector<size_t>> xst(num_devices);
 	vector<cl_mem> prmd(num_devices);
-	vector<vector<cl_mem>> mpsd(num_devices, vector<cl_mem>(sf.n));
 //	vector<cl_mem> ligh(num_devices);
 	vector<cl_mem> ligd(num_devices);
 	vector<cl_mem> slnd(num_devices);
 //	vector<cl_mem> cnfh(num_devices);
+	vector<array<cl_mem, sf.n>> mpsd(num_devices);
 	cl_int error;
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
@@ -291,9 +287,6 @@ int main(int argc, char* argv[])
 		checkOclErrors(clSetKernelArg(kernel, 1, sizeof(cl_mem), &ligd[dev]));
 		checkOclErrors(clSetKernelArg(kernel, 2, sizeof(cl_float) * lws, NULL));
 		checkOclErrors(clSetKernelArg(kernel, 3, sizeof(cl_mem), &prmd[dev]));
-
-		// Reserve space for xst.
-		xst[dev].reserve(sf.n);
 	}
 	source.clear();
 
@@ -342,27 +335,15 @@ int main(int argc, char* argv[])
 		// Wait until a device is ready for execution.
 		const int dev = idle.safe_pop_back();
 
-		// Find atom types that are presented in the current ligand but are not yet copied to device memory.
-		xs.clear();
+		// Copy grid maps from host memory to device memory if necessary.
 		for (const atom& a : lig.atoms)
 		{
 			const size_t t = a.xs;
-			if (find(xst[dev].cbegin(), xst[dev].cend(), t) == xst[dev].cend())
+			if (mpsd[dev][t])
 			{
-				xst[dev].push_back(t);
-				xs.push_back(t);
-			}
-		}
-
-		// Copy grid maps from host memory to device memory if necessary.
-		if (xs.size())
-		{
-			const size_t map_bytes = sizeof(float) * rec.num_probes_product;
-			for (const auto t : xs)
-			{
-				mpsd[dev][t] = clCreateBuffer(contexts[dev], CL_MEM_READ_ONLY, map_bytes, NULL, &error);
+				mpsd[dev][t] = clCreateBuffer(contexts[dev], CL_MEM_READ_ONLY, rec.map_bytes, NULL, &error);
 				checkOclErrors(error);
-				checkOclErrors(clEnqueueWriteBuffer(queues[dev], mpsd[dev][t], CL_TRUE, 0, map_bytes, rec.maps[t].data(), 0, NULL, NULL));
+				checkOclErrors(clEnqueueWriteBuffer(queues[dev], mpsd[dev][t], CL_TRUE, 0, rec.map_bytes, rec.maps[t].data(), 0, NULL, NULL));
 			}
 		}
 
