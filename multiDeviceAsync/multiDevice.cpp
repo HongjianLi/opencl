@@ -456,6 +456,10 @@ int main(int argc, char* argv[])
 	for (int dev = 0; dev < num_devices; ++dev)
 	{
 		if (cbex[dev]) checkOclErrors(clReleaseEvent(cbex[dev]));
+		for (auto mapd : mpsd[dev])
+		{
+			if (mapd) checkOclErrors(clReleaseMemObject(mapd));
+		}
 		checkOclErrors(clReleaseMemObject(prmd[dev]));
 		checkOclErrors(clReleaseMemObject(slnd[dev]));
 		checkOclErrors(clReleaseMemObject(ligd[dev]));
