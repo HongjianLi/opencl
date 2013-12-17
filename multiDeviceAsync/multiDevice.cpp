@@ -52,6 +52,7 @@ class ligand
 public:
 	explicit ligand(const path& p) : filename(p.filename()), atoms(rand() % 10)
 	{
+		for (const auto& a : atoms) xs[a.xs] = true;
 		spin(1e+4);
 	}
 	void encode(float* const ligh, const unsigned int lws) const
@@ -68,6 +69,7 @@ public:
 	}
 	path filename;
 	vector<atom> atoms;
+	array<bool, scoring_function::n> xs;
 };
 
 class safe_function
@@ -306,10 +308,9 @@ int main(int argc, char* argv[])
 
 		// Find atom types that are presented in the current ligand but not presented in the grid maps.
 		vector<size_t> xs;
-		for (const atom& a : lig.atoms)
+		for (size_t t = 0; t < sf.n; ++t)
 		{
-			const size_t t = a.xs;
-			if (rec.maps[t].empty())
+			if (lig.xs[t] && rec.maps[t].empty())
 			{
 				rec.maps[t].resize(rec.num_probes_product);
 				xs.push_back(t);
@@ -336,10 +337,9 @@ int main(int argc, char* argv[])
 		const int dev = idle.safe_pop_back();
 
 		// Copy grid maps from host memory to device memory if necessary.
-		for (const atom& a : lig.atoms)
+		for (size_t t = 0; t < sf.n; ++t)
 		{
-			const size_t t = a.xs;
-			if (mpsd[dev][t])
+			if (lig.xs[t] && !mpsd[dev][t])
 			{
 				mpsd[dev][t] = clCreateBuffer(contexts[dev], CL_MEM_READ_ONLY, rec.map_bytes, NULL, &error);
 				checkOclErrors(error);
