@@ -188,31 +188,43 @@ int main(int argc, char* argv[])
 	checkOclErrors(clGetPlatformIDs(0, NULL, &num_platforms));
 	vector<cl_platform_id> platforms(num_platforms);
 	checkOclErrors(clGetPlatformIDs(num_platforms, platforms.data(), NULL));
-	const auto platform = platforms[num_platforms > 1 ? 1 : 0];
-	checkOclErrors(clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(buffer), buffer, NULL));
-	cout << "CL_PLATFORM_NAME: " << buffer << endl;
+	vector<cl_uint> num_platform_devices(num_platforms);
+	cl_uint num_devices = 0;
+	for (cl_uint i = 0; i < num_platforms; ++i)
+	{
+		const auto platform = platforms[i];
+		checkOclErrors(clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(buffer), buffer, NULL));
+		cout << i << ' ' << buffer;
+		checkOclErrors(clGetPlatformInfo(platform, CL_PLATFORM_VERSION, sizeof(buffer), buffer, NULL));
+		cout << ", " << buffer << endl;
+		checkOclErrors(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, &num_platform_devices[i]));
+		num_devices += num_platform_devices[i];
+	}
 
 	cout << "Detecting OpenCL devices" << endl;
-	cl_uint num_devices;
-	checkOclErrors(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices));
 	if (!num_devices)
 	{
 		cerr << "No OpenCL devices detected" << endl;
 		return 2;
 	}
-
 	vector<cl_device_id> devices(num_devices);
-	checkOclErrors(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices, devices.data(), NULL));
 	vector<bool> cl12(num_devices);
 	vector<cl_bool> host_unified_memory(num_devices);
-	for (int dev = 0; dev < num_devices; ++dev)
+	for (cl_uint i = 0, dev = 0; i < num_platforms; ++i)
 	{
-		const auto device = devices[dev];
-		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL));
-		cout << "CL_DEVICE_NAME: " << buffer << endl;
-		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_OPENCL_C_VERSION, sizeof(buffer), buffer, NULL));
-		cl12[dev] = buffer[9] > '1' || buffer[11] >= '2';
-		checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(host_unified_memory[dev]), &host_unified_memory[dev], NULL));
+		const auto platform = platforms[i];
+		const auto npd = num_platform_devices[i];
+		checkOclErrors(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, npd, &devices[dev], NULL));
+		for (int d = 0; d < npd; ++d, ++dev)
+		{
+			const auto device = devices[dev];
+			checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL));
+			cout << dev << ' ' << buffer;
+			checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_OPENCL_C_VERSION, sizeof(buffer), buffer, NULL));
+			cout << ", " << buffer << endl;
+			cl12[dev] = buffer[9] > '1' || buffer[11] >= '2';
+			checkOclErrors(clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(host_unified_memory[dev]), &host_unified_memory[dev], NULL));
+		}
 	}
 
 	cout << "Create contexts and compiling modules for " << num_devices << " devices" << endl;
