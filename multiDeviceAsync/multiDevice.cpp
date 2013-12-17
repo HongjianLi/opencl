@@ -274,10 +274,7 @@ int main(int argc, char* argv[])
 		checkOclErrors(error);
 		kernels[dev] = kernel;
 
-		// Reserve space for xst.
-		xst[dev].reserve(sf.n);
-
-		// Allocate prmd, ligh, ligd, slnd and cnfh.
+		// Create buffers for prmd, ligh, ligd, slnd and cnfh.
 		prmd[dev] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_float) * lws, prmh.data(), &error);
 		checkOclErrors(error);
 //		ligh[dev] = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_float) * lws, NULL, &error);
@@ -288,6 +285,15 @@ int main(int argc, char* argv[])
 		checkOclErrors(error);
 //		cnfh[dev] = clCreateBuffer(context, CL_MEM_ALLOC_HOST_PTR, sizeof(cl_float) * lws, NULL, &error);
 //		checkOclErrors(error);
+
+		// Set kernel arguments.
+		checkOclErrors(clSetKernelArg(kernel, 0, sizeof(cl_mem), &slnd[dev]));
+		checkOclErrors(clSetKernelArg(kernel, 1, sizeof(cl_mem), &ligd[dev]));
+		checkOclErrors(clSetKernelArg(kernel, 2, sizeof(cl_float) * lws, NULL));
+		checkOclErrors(clSetKernelArg(kernel, 3, sizeof(cl_mem), &prmd[dev]));
+
+		// Reserve space for xst.
+		xst[dev].reserve(sf.n);
 	}
 	source.clear();
 
@@ -382,10 +388,6 @@ int main(int argc, char* argv[])
 		}
 
 		// Launch kernel.
-		checkOclErrors(clSetKernelArg(kernels[dev], 0, sizeof(cl_mem), &slnd[dev]));
-		checkOclErrors(clSetKernelArg(kernels[dev], 1, sizeof(cl_mem), &ligd[dev]));
-		checkOclErrors(clSetKernelArg(kernels[dev], 2, sizeof(cl_float) * lws, NULL));
-		checkOclErrors(clSetKernelArg(kernels[dev], 3, sizeof(cl_mem), &prmd[dev]));
 		cl_event kernel_event;
 		checkOclErrors(clEnqueueNDRangeKernel(queues[dev], kernels[dev], 1, NULL, &gws, &lws, 2, input_events, &kernel_event));
 
