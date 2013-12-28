@@ -137,12 +137,11 @@ template <typename T>
 class callback_data
 {
 public:
-	callback_data(io_service_pool& io, cl_event cbex, const size_t lws, const T dev, cl_command_queue queue, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), cbex(cbex), lws(lws), dev(dev), queue(queue), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
+	callback_data(io_service_pool& io, cl_event cbex, const size_t lws, const T dev, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), cbex(cbex), lws(lws), dev(dev), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
 	io_service_pool& io;
 	cl_event cbex;
 	const size_t lws;
 	const T dev;
-	cl_command_queue queue;
 	cl_mem slnd;
 	cl_float* const cnfh;
 	const cl_float* const prmh;
@@ -384,12 +383,13 @@ int main(int argc, char* argv[])
 		checkOclErrors(clSetEventCallback(output_event, CL_COMPLETE, [](cl_event event, cl_int command_exec_status, void* data)
 		{
 			assert(command_exec_status == CL_COMPLETE);
+			cl_command_queue queue;
+			checkOclErrors(clGetEventInfo(event, CL_EVENT_COMMAND_QUEUE, sizeof(queue), &queue, 0));
 			const shared_ptr<callback_data<int>> cbd(reinterpret_cast<callback_data<int>*>(data));
 			cbd->io.post([=]()
 			{
 				const auto   lws = cbd->lws;
 				const auto   dev = cbd->dev;
-				const auto queue = cbd->queue;
 				const auto  slnd = cbd->slnd;
 				const auto  cnfh = cbd->cnfh;
 				const auto  prmh = cbd->prmh;
@@ -431,7 +431,7 @@ int main(int argc, char* argv[])
 				idle.safe_push_back(dev);
 			});
 			checkOclErrors(clSetUserEventStatus(cbd->cbex, CL_COMPLETE));
-		}, new callback_data<int>(io, cbex[dev], lws, dev, queues[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
+		}, new callback_data<int>(io, cbex[dev], lws, dev, slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
 	}
 
 	// Synchronize queues and callback events.
