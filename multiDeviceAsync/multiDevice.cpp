@@ -399,7 +399,6 @@ int main(int argc, char* argv[])
 				auto& idle = cbd->idle;
 
 				// Validate results.
-				cl_int error;
 				for (int i = 0; i < lws; ++i)
 				{
 					const float actual = cnfh[i];
