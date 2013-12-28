@@ -406,7 +406,7 @@ int main(int argc, char* argv[])
 					const float expected = lig.ligh[i] * 2.0f + 1.0f + prmh[i % 16];
 					if (fabs(actual - expected) > 1e-7)
 					{
-						cout << "cnfh[" << i << "] = " << actual << ", expected = " << expected << endl;
+						cerr << "cnfh[" << i << "] = " << actual << ", expected = " << expected << endl;
 						break;
 					}
 				}
