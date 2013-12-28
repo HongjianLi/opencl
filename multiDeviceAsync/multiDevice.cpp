@@ -50,17 +50,15 @@ public:
 class ligand
 {
 public:
-	explicit ligand(const path& p) : filename(p.filename()), atoms(rand() % 10)
+	explicit ligand(const path& p, const unsigned int lws) : filename(p.filename()), atoms(rand() % 10), ligh(lws)
 	{
 		for (const auto& a : atoms) xs[a.xs] = true;
+		for (auto& c : ligh) c = rand() / static_cast<float>(RAND_MAX);
 		spin(1e+4);
 	}
-	void encode(float* const ligh, const unsigned int lws) const
+	void encode(float* const ligh) const
 	{
-		for (int i = 0; i < lws; ++i)
-		{
-			ligh[i] = rand() / static_cast<float>(RAND_MAX);
-		}
+		memcpy(ligh, this->ligh.data(), sizeof(float) * this->ligh.size());
 		spin(1e+3);
 	}
 	void write(const float* const cnfh) const
@@ -70,6 +68,7 @@ public:
 	path filename;
 	vector<atom> atoms;
 	array<bool, scoring_function::n> xs;
+	vector<float> ligh;
 };
 
 class safe_function
@@ -138,13 +137,12 @@ template <typename T>
 class callback_data
 {
 public:
-	callback_data(io_service_pool& io, cl_event cbex, const size_t lws, const T dev, cl_command_queue queue, cl_mem ligd, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), cbex(cbex), lws(lws), dev(dev), queue(queue), ligd(ligd), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
+	callback_data(io_service_pool& io, cl_event cbex, const size_t lws, const T dev, cl_command_queue queue, cl_mem slnd, float* const cnfh, const float* const prmh, ligand&& lig_, safe_function& safe_print, size_t& num_ligands, safe_vector<T>& idle) : io(io), cbex(cbex), lws(lws), dev(dev), queue(queue), slnd(slnd), cnfh(cnfh), prmh(prmh), lig(move(lig_)), safe_print(safe_print), num_ligands(num_ligands), idle(idle) {}
 	io_service_pool& io;
 	cl_event cbex;
 	const size_t lws;
 	const T dev;
 	cl_command_queue queue;
-	cl_mem ligd;
 	cl_mem slnd;
 	cl_float* const cnfh;
 	const cl_float* const prmh;
@@ -304,7 +302,7 @@ int main(int argc, char* argv[])
 	for (directory_iterator dir_iter("."), const_dir_iter; dir_iter != const_dir_iter; ++dir_iter)
 	{
 		// Parse the ligand.
-		ligand lig(dir_iter->path());
+		ligand lig(dir_iter->path(), lws);
 
 		// Find atom types that are presented in the current ligand but not presented in the grid maps.
 		vector<size_t> xs;
@@ -351,7 +349,7 @@ int main(int argc, char* argv[])
 		cl_event input_events[2];
 		cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queues[dev], ligd[dev], CL_TRUE, cl12[dev] ? CL_MAP_WRITE_INVALIDATE_REGION : CL_MAP_WRITE, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
 		checkOclErrors(error);
-		lig.encode(ligh, lws);
+		lig.encode(ligh);
 		checkOclErrors(clEnqueueUnmapMemObject(queues[dev], ligd[dev], ligh, 0, NULL, &input_events[0]));
 
 		// Clear the solution buffer.
@@ -392,7 +390,6 @@ int main(int argc, char* argv[])
 				const auto   lws = cbd->lws;
 				const auto   dev = cbd->dev;
 				const auto queue = cbd->queue;
-				const auto  ligd = cbd->ligd;
 				const auto  slnd = cbd->slnd;
 				const auto  cnfh = cbd->cnfh;
 				const auto  prmh = cbd->prmh;
@@ -403,19 +400,16 @@ int main(int argc, char* argv[])
 
 				// Validate results.
 				cl_int error;
-				cl_float* ligh = (cl_float*)clEnqueueMapBuffer(queue, ligd, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_float) * lws, 0, NULL, NULL, &error);
-				checkOclErrors(error);
 				for (int i = 0; i < lws; ++i)
 				{
 					const float actual = cnfh[i];
-					const float expected = ligh[i] * 2.0f + 1.0f + prmh[i % 16];
+					const float expected = lig.ligh[i] * 2.0f + 1.0f + prmh[i % 16];
 					if (fabs(actual - expected) > 1e-7)
 					{
 						printf("cnfh[%d] = %f, expected = %f\n", i, actual, expected);
 						break;
 					}
 				}
-				checkOclErrors(clEnqueueUnmapMemObject(queue, ligd, ligh, 0, NULL, NULL));
 
 				// Write conformations.
 				lig.write(cnfh);
@@ -438,7 +432,7 @@ int main(int argc, char* argv[])
 				idle.safe_push_back(dev);
 			});
 			checkOclErrors(clSetUserEventStatus(cbd->cbex, CL_COMPLETE));
-		}, new callback_data<int>(io, cbex[dev], lws, dev, queues[dev], ligd[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
+		}, new callback_data<int>(io, cbex[dev], lws, dev, queues[dev], slnd[dev], cnfh, prmh.data(), move(lig), safe_print, num_ligands, idle)));
 	}
 
 	// Synchronize queues and callback events.
