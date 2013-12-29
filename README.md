@@ -26,7 +26,7 @@ mwc64x
 
 This sample features a random number generator based on multiply-with-carry.
 
-multiDeviceAsync
-----------------
+multiDevice
+-----------
 
 This sample distributes multiple tasks to multiple devices dynamically, and uses asynchronous callbacks for postprocessing.
