@@ -12,7 +12,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bandwidthTest", "bandwidthT
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mwc64x", "mwc64x\mwc64x.vcxproj", "{18C1C79D-266C-45A1-8163-761A8285DBC1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiDevice", "multiDeviceAsync\multiDevice.vcxproj", "{CCEEB36A-CC32-458D-9158-64619D21E1C5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiDevice", "multiDevice\multiDevice.vcxproj", "{CCEEB36A-CC32-458D-9158-64619D21E1C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
